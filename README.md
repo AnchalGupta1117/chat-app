@@ -28,6 +28,7 @@ Free stack chat application with React (Vite), Node.js, Express, MongoDB, Socket
 
 ## Notes
 - CORS/socket origins are controlled via `CLIENT_ORIGIN` and `VITE_API_URL` (defaults to `http://localhost:5173` and `http://localhost:5000`).
+   - For Render + Vercel, set `CLIENT_ORIGIN=https://<your-vercel-domain>` (no trailing slash). Multiple origins: comma-separated. Ensure the backend is redeployed after changing envs.
 - Message delivery uses Socket.IO; messages are persisted in MongoDB for history retrieval.
 
 ## Deployment (example: Render + Netlify)

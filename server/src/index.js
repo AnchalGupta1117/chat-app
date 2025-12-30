@@ -13,11 +13,20 @@ const { setOnline, removeOnline, getSocketId, getOnlineUserIds } = require('./ut
 
 const app = express();
 
-const allowedOrigins = process.env.CLIENT_ORIGIN ? process.env.CLIENT_ORIGIN.split(',') : ['*'];
+const allowedOrigins = process.env.CLIENT_ORIGIN
+  ? process.env.CLIENT_ORIGIN.split(',').map((o) => o.trim())
+  : ['*'];
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (mobile apps, curl) or matching origins
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error('Not allowed by CORS'));
+    },
+    optionsSuccessStatus: 200,
   })
 );
 app.use(express.json());
@@ -33,7 +42,12 @@ app.use('/api/messages', messageRoutes);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error('Not allowed by CORS'));
+    },
   },
 });
 
