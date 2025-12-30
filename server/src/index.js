@@ -17,6 +17,8 @@ const allowedOrigins = process.env.CLIENT_ORIGIN
   ? process.env.CLIENT_ORIGIN.split(',').map((o) => o.trim())
   : ['*'];
 
+console.log('Allowed origins:', allowedOrigins);
+
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -26,13 +28,25 @@ app.use(
       }
       return cb(new Error('Not allowed by CORS'));
     },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     optionsSuccessStatus: 200,
   })
 );
+// Ensure preflight requests succeed for all routes
+app.options('*', cors());
 app.use(express.json());
 
 app.get('/health', (req, res) => {
   return res.json({ status: 'ok' });
+});
+
+// Debug route to inspect CORS configuration in production
+app.get('/debug/cors', (req, res) => {
+  return res.json({
+    requestOrigin: req.headers.origin || null,
+    allowedOrigins,
+  });
 });
 
 app.use('/api/auth', authRoutes);
