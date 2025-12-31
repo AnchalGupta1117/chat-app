@@ -496,7 +496,12 @@ function App() {
             <UserList users={friendsList} selectedId={selectedUser?.id} onSelect={setSelectedUser} />
           </>
         ) : (
-          <AllUsers currentUserId={currentUser.id} socket={socketRef.current} friendsList={friendsList} />
+          <AllUsers 
+            currentUserId={currentUser.id} 
+            socket={socketRef.current} 
+            friendsList={friendsList}
+            friendRequests={friendRequests}
+          />
         )}
       </div>
 

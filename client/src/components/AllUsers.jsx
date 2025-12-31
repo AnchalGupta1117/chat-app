@@ -1,26 +1,47 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 
-export default function AllUsers({ currentUserId, socket, friendsList = [] }) {
+export default function AllUsers({ currentUserId, socket, friendsList = [], friendRequests = [] }) {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sentRequests, setSentRequests] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadAllUsers();
   }, []);
 
-  // Listen for real-time notifications
+  // Initialize sentRequests from friendRequests prop
   useEffect(() => {
-    socket?.on('friend_request_sent', (data) => {
-      if (data.status === 'success') {
-        setSentRequests((prev) => ({ ...prev, [data.recipientId]: true }));
+    const pending = {};
+    friendRequests.forEach((req) => {
+      if (req.requester && req.requester._id) {
+        pending[req.requester._id] = true;
       }
     });
+    setSentRequests(pending);
+  }, [friendRequests]);
+
+  // Listen for real-time notifications
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRequestSent = (data) => {
+      console.log('Friend request sent event:', data);
+      if (data.status === 'success') {
+        setSentRequests((prev) => ({ ...prev, [data.recipientId]: true }));
+        setError('');
+      } else if (data.status === 'error') {
+        setError(data.message || 'Failed to send request');
+        setTimeout(() => setError(''), 3000);
+      }
+    };
+
+    socket.on('friend_request_sent', handleRequestSent);
 
     return () => {
-      socket?.off('friend_request_sent');
+      socket.off('friend_request_sent', handleRequestSent);
     };
   }, [socket]);
 
@@ -31,13 +52,21 @@ export default function AllUsers({ currentUserId, socket, friendsList = [] }) {
       setAllUsers(res.data || []);
     } catch (error) {
       console.error('Error loading users:', error);
+      setError('Failed to load users');
     } finally {
       setLoading(false);
     }
   };
 
   const sendFriendRequest = (recipientId) => {
-    socket?.emit('send_friend_request', { recipientId });
+    if (!socket) {
+      setError('Not connected to server');
+      return;
+    }
+    console.log('Sending friend request to:', recipientId);
+    // Optimistically update UI
+    setSentRequests((prev) => ({ ...prev, [recipientId]: true }));
+    socket.emit('send_friend_request', { recipientId });
   };
 
   const isFriend = (userId) => friendsList.some((f) => f._id === userId);
@@ -52,6 +81,11 @@ export default function AllUsers({ currentUserId, socket, friendsList = [] }) {
 
   return (
     <div style={{ padding: '1rem' }}>
+      {error && (
+        <div style={{ padding: '0.5rem', marginBottom: '1rem', background: '#fca5a5', color: '#0b1020', borderRadius: '6px', fontSize: '0.85rem' }}>
+          {error}
+        </div>
+      )}
       <div style={{ marginBottom: '1rem' }}>
         <input
           type="text"

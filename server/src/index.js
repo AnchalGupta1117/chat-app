@@ -204,6 +204,32 @@ io.use((socket, next) => {
     try {
       const { recipientId } = data;
       const Friend = require('./models/Friend');
+      const User = require('./models/User');
+      
+      // Validate recipient exists
+      const recipient = await User.findById(recipientId);
+      if (!recipient) {
+        socket.emit('friend_request_sent', { recipientId, status: 'error', message: 'User not found' });
+        return;
+      }
+
+      // Check if already friends or pending request exists
+      const existing = await Friend.findOne({
+        $or: [
+          { requester: userId, recipient: recipientId },
+          { requester: recipientId, recipient: userId },
+        ],
+      });
+
+      if (existing) {
+        const message = existing.status === 'accepted' 
+          ? 'Already friends' 
+          : existing.status === 'pending' 
+            ? 'Friend request already sent' 
+            : 'Friend request exists';
+        socket.emit('friend_request_sent', { recipientId, status: 'error', message });
+        return;
+      }
       
       const friendRequest = new Friend({
         requester: userId,
@@ -213,6 +239,8 @@ io.use((socket, next) => {
       
       await friendRequest.save();
       await friendRequest.populate('requester', 'name email');
+      
+      console.log('Friend request created:', friendRequest._id);
       
       // Notify recipient in real-time
       io.to(getSocketId(recipientId)).emit('friend_request_received', {
@@ -224,7 +252,7 @@ io.use((socket, next) => {
       socket.emit('friend_request_sent', { recipientId, status: 'success' });
     } catch (err) {
       console.error('Send friend request error', err);
-      socket.emit('friend_request_sent', { status: 'error', message: err.message });
+      socket.emit('friend_request_sent', { recipientId, status: 'error', message: err.message });
     }
   });
 
