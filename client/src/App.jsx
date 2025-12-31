@@ -29,6 +29,9 @@ function App() {
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
   const [replyingTo, setReplyingTo] = useState(null);
+  
+  const socketRef = useRef(null);
+  const selectedIdRef = useRef(null);
   const typingTimeoutRef = useRef({});
 
   useEffect(() => {
