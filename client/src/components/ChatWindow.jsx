@@ -7,6 +7,7 @@ export default function ChatWindow({
   messageText,
   onMessageChange,
   onSend,
+  onDeleteConversation,
   loading,
   connected,
 }) {
@@ -31,8 +32,18 @@ export default function ChatWindow({
           <div className="user-name">{selectedUser.name}</div>
           <div className="chat-subtitle">{selectedUser.online ? 'Online' : 'Offline'}</div>
         </div>
-        <div className={`pill ${connected ? 'pill-online' : 'pill-offline'}`}>
-          {connected ? 'Connected' : 'Connecting...'}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            className="btn ghost"
+            style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+            onClick={onDeleteConversation}
+            title="Delete conversation"
+          >
+            Delete Chat
+          </button>
+          <div className={`pill ${connected ? 'pill-online' : 'pill-offline'}`}>
+            {connected ? 'Connected' : 'Connecting...'}
+          </div>
         </div>
       </header>
 

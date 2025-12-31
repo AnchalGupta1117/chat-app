@@ -172,6 +172,32 @@ function App() {
     });
   };
 
+  const handleDeleteConversation = async () => {
+    if (!selectedUser) return;
+    if (!window.confirm(`Delete entire conversation with ${selectedUser.name}? This cannot be undone.`)) return;
+
+    try {
+      await api.delete(`/api/messages/conversation/${selectedUser.id}`);
+      setMessages([]);
+      setError('');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to delete conversation';
+      setError(message);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Delete your account permanently? All your messages will be deleted. This cannot be undone.')) return;
+
+    try {
+      await api.delete('/api/users/me');
+      handleLogout();
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to delete account';
+      setError(message);
+    }
+  };
+
   if (!token || !currentUser) {
     return (
       <div className="auth-card card">
@@ -194,7 +220,10 @@ function App() {
             <div className="brand">Realtime Chat</div>
             <div className="muted">Logged in as {currentUser.name}</div>
           </div>
-          <button className="btn ghost" onClick={handleLogout}>Logout</button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn ghost" onClick={handleDeleteAccount} title="Delete account">Delete Account</button>
+            <button className="btn ghost" onClick={handleLogout}>Logout</button>
+          </div>
         </div>
         {loadingUsers && <div className="muted" style={{ padding: '0 1rem' }}>Refreshing users...</div>}
         <UserList users={users} selectedId={selectedUser?.id} onSelect={setSelectedUser} />
@@ -208,6 +237,7 @@ function App() {
           messageText={messageText}
           onMessageChange={setMessageText}
           onSend={sendMessage}
+          onDeleteConversation={handleDeleteConversation}
           loading={loadingMessages}
           connected={socketConnected}
         />

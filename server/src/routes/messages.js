@@ -32,4 +32,22 @@ router.get('/:userId', auth, async (req, res) => {
   }
 });
 
+router.delete('/conversation/:userId', auth, async (req, res) => {
+  const otherUserId = req.params.userId;
+
+  try {
+    const result = await Message.deleteMany({
+      $or: [
+        { sender: req.userId, recipient: otherUserId },
+        { sender: otherUserId, recipient: req.userId },
+      ],
+    });
+
+    return res.json({ message: 'Conversation deleted', deletedCount: result.deletedCount });
+  } catch (err) {
+    console.error('Delete conversation error', err);
+    return res.status(500).json({ message: 'Unable to delete conversation' });
+  }
+});
+
 module.exports = router;
