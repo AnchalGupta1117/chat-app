@@ -257,7 +257,7 @@ export default function ChatWindow({
                     </button>
                   </div>
                 )}
-style={emojiPickerPos} 
+
                 {showEmojiPicker === msg.id && (
                   <div className="emoji-picker" onClick={(e) => e.stopPropagation()}>
                     {emojis.map((emoji) => (
