@@ -26,18 +26,28 @@ export default function ChatWindow({
   const endRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showActions, setShowActions] = useState(null);
-  const [actionMenuPos, setActionMenuPos] = useState({ top: '0px', left: '0px' });
-  const [emojiPickerPos, setEmojiPickerPos] = useState({ top: '0px', left: '0px' });
   const typingTimeoutRef = useRef(null);
   const longPressTimer = useRef(null);
   const messagesRef = useRef(null);
   const actionTriggerRef = useRef({});
+  const actionMenuRef = useRef(null);
 
   const emojis = ['😊', '❤️', '😂', '🔥', '👍', '😢', '😡', '🎉'];
 
   const getReplyContent = (messageId) => {
     return messages.find((m) => m.id === messageId);
   };
+
+  useEffect(() => {
+    if (showActions && actionMenuRef.current) {
+      const trigger = actionTriggerRef.current[showActions];
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        actionMenuRef.current.style.top = `${rect.bottom + 5}px`;
+        actionMenuRef.current.style.left = `${rect.left}px`;
+      }
+    }
+  }, [showActions]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -217,27 +227,19 @@ export default function ChatWindow({
                   </div>
                   <div className="message-actions-trigger" ref={(el) => { if (el) actionTriggerRef.current[msg.id] = el; }} onClick={(e) => {
                     e.stopPropagation();
-                    if (showActions === msg.id) {
-                      setShowActions(null);
-                    } else {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setActionMenuPos({ top: `${rect.bottom + 5}px`, left: `${rect.left}px` });
-                      setShowActions(msg.id);
-                    }
+                    setShowActions(showActions === msg.id ? null : msg.id);
                   }}>
                     ⋯
                   </div>
                 </div>
 
                 {showActions === msg.id && (
-                  <div className="message-actions-menu" style={actionMenuPos}>
+                  <div className="message-actions-menu" ref={actionMenuRef}>
                     <button
                       className="action-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setEmojiPickerPos({ top: `${rect.bottom + 5}px`, left: `${rect.left}px` });
-                        setShowEmojiPicker(msg.id);
+                        setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id);
                         setShowActions(null);
                       }}
                     >
