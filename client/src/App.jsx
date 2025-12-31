@@ -225,7 +225,7 @@ function App() {
     };
 
     loadUsers();
-  }, [token, onlineIds, searchQuery]);
+  }, [token, onlineIds, searchQuery, selectedUser]);
 
   const handleAuth = async (payload) => {
     setLoadingAuth(true);
