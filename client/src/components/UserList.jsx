@@ -16,7 +16,7 @@ export default function UserList({ users, selectedId, onSelect, onRemove }) {
         >
           <button
             className={`user-row ${selectedId === (user.id || user._id) ? 'selected' : ''}`}
-            onClick={() => onSelect(user)}
+            onClick={() => onSelect({ ...user, id: user.id || user._id })}
           >
             <div className="avatar" aria-hidden>
               {user.name?.slice(0, 1)?.toUpperCase() || '?'}
