@@ -36,6 +36,7 @@ function App() {
   const [loadingFriendRequests, setLoadingFriendRequests] = useState(false);
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' or 'explore'
   const [loadingFriends, setLoadingFriends] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   const socketRef = useRef(null);
   const selectedIdRef = useRef(null);
@@ -58,6 +59,18 @@ function App() {
       localStorage.removeItem('chatUser');
     }
   }, [currentUser]);
+
+  // Close settings menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showSettings && !e.target.closest('[data-settings-menu]')) {
+        setShowSettings(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSettings]);
 
   useEffect(() => {
     if (!token) {
@@ -437,6 +450,31 @@ function App() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone. All your data, messages, and friends will be permanently deleted.'
+    );
+    if (!confirmed) return;
+
+    const doubleConfirm = window.prompt(
+      'Type DELETE to confirm account deletion:'
+    );
+    if (doubleConfirm !== 'DELETE') {
+      alert('Account deletion cancelled.');
+      return;
+    }
+
+    try {
+      await api.delete('/api/auth/account');
+      handleLogout();
+      alert('Your account has been deleted successfully.');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to delete account';
+      setError(message);
+      alert(`Error: ${message}`);
+    }
+  };
+
   if (!token || !currentUser) {
     return (
       <div className="auth-card card">
@@ -453,27 +491,11 @@ function App() {
 
   return (
     <div className="app-shell">
-      <div className="card" style={{ padding: 0 }}>
+      <div className="card" style={{ padding: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div className="topbar">
           <div>
             <div className="brand">💬 Realtime Chat</div>
             <div className="muted" style={{ fontSize: '0.85rem' }}>Logged in as {currentUser.name}</div>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <div style={{ 
-              padding: '0.3rem 0.6rem', 
-              background: socketConnected ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)', 
-              color: socketConnected ? '#4ade80' : '#fca5a5',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
-              fontWeight: '600',
-              border: `1px solid ${socketConnected ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-            }}>
-              {socketConnected ? '● Online' : '● Offline'}
-            </div>
-            <button className="btn ghost" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} onClick={handleLogout}>
-              Logout
-            </button>
           </div>
         </div>
         
@@ -546,6 +568,109 @@ function App() {
               onRemove={handleRemoveFriend}
             />
           </>
+        ) : (
+          <AllUsers 
+            currentUserId={currentUser.id} 
+            socket={socketRef.current} 
+            friendsList={friendsList}
+            friendRequests={friendRequests}
+          />
+        )}
+        
+        {/* Settings Menu at Bottom */}
+        <div data-settings-menu style={{ marginTop: 'auto', padding: '0.75rem 1rem', borderTop: '1px solid var(--border)', position: 'relative' }}>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.6rem 0.75rem',
+                  background: 'var(--panel-2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  transition: 'all 150ms ease',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--panel-2)'}
+              >
+                <span style={{ fontSize: '1.2rem' }}>⚙️</span>
+                <span>Settings</span>
+              </button>
+              
+              {showSettings && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '1rem',
+                  right: '1rem',
+                  marginBottom: '0.5rem',
+                  background: 'var(--panel)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                  overflow: 'hidden',
+                  zIndex: 1000,
+                }}>
+                  <button
+                    onClick={() => {
+                      setShowSettings(false);
+                      handleLogout();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid var(--border)',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'background 150ms ease',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--panel-2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>🚪</span>
+                    <span>Logout</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowSettings(false);
+                      handleDeleteAccount();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'background 150ms ease',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>🗑️</span>
+                    <span>Delete Account</span>
+                  </button>
+                </div>
+              )}
+            </div>
         ) : (
           <AllUsers 
             currentUserId={currentUser.id} 

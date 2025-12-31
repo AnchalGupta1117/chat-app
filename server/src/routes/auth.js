@@ -89,4 +89,31 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// Delete account
+router.delete('/account', auth, async (req, res) => {
+  try {
+    const userId = req.userId;
+    
+    // Delete all messages where user is sender or recipient
+    const Message = require('../models/Message');
+    await Message.deleteMany({
+      $or: [{ sender: userId }, { recipient: userId }]
+    });
+    
+    // Delete all friendships
+    const Friend = require('../models/Friend');
+    await Friend.deleteMany({
+      $or: [{ requester: userId }, { recipient: userId }]
+    });
+    
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+    
+    return res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    console.error('Delete account error', err);
+    return res.status(500).json({ message: 'Unable to delete account' });
+  }
+});
+
 module.exports = router;
