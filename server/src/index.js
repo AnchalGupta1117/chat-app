@@ -81,8 +81,10 @@ io.use((socket, next) => {
 });
 
   io.on('connection', (socket) => {
-  const userId = socket.userId;
+  const userId = String(socket.userId); // Ensure userId is always a string
   setOnline(userId, socket.id);
+
+  console.log('User connected:', userId, 'Socket ID:', socket.id);
 
   socket.emit('online_users', getOnlineUserIds());
   socket.broadcast.emit('user_online', { userId });
@@ -216,9 +218,11 @@ io.use((socket, next) => {
 
   socket.on('send_friend_request', async (data) => {
     try {
-      const { recipientId } = data;
+      const recipientId = String(data.recipientId); // Ensure recipientId is string
       const Friend = require('./models/Friend');
       const User = require('./models/User');
+      
+      console.log('Friend request from:', userId, 'to:', recipientId);
       
       // Validate recipient exists
       const recipient = await User.findById(recipientId);
@@ -252,21 +256,34 @@ io.use((socket, next) => {
       });
       
       await friendRequest.save();
-      await friendRequest.populate('requester', 'name email');
+      await friendRequest.populate('requester', 'name email _id');
       
-      console.log('Friend request created:', friendRequest._id);
+      console.log('Friend request created:', friendRequest._id, 'Notifying user:', recipientId);
       
       // Notify recipient in real-time
-      io.to(getSocketId(recipientId)).emit('friend_request_received', {
-        requestId: friendRequest._id,
-        requester: friendRequest.requester,
-        createdAt: friendRequest.createdAt,
-      });
+      const recipientSocketId = getSocketId(recipientId);
+      console.log('Recipient socket ID:', recipientSocketId);
+      
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit('friend_request_received', {
+          _id: friendRequest._id.toString(),
+          requestId: friendRequest._id.toString(),
+          requester: {
+            _id: friendRequest.requester._id.toString(),
+            name: friendRequest.requester.name,
+            email: friendRequest.requester.email,
+          },
+          createdAt: friendRequest.createdAt,
+        });
+        console.log('Request notification sent to recipient');
+      } else {
+        console.log('Recipient not online, request will be fetched on next login');
+      }
       
       socket.emit('friend_request_sent', { recipientId, status: 'success' });
     } catch (err) {
       console.error('Send friend request error', err);
-      socket.emit('friend_request_sent', { recipientId, status: 'error', message: err.message });
+      socket.emit('friend_request_sent', { recipientId: data.recipientId, status: 'error', message: err.message });
     }
   });
 
@@ -279,18 +296,42 @@ io.use((socket, next) => {
         requestId,
         { status: 'accepted' },
         { new: true }
-      ).populate('requester', 'name email').populate('recipient', 'name email');
+      ).populate('requester', 'name email _id').populate('recipient', 'name email _id');
+      
+      if (!friendRequest) {
+        socket.emit('request_error', { message: 'Request not found' });
+        return;
+      }
+      
+      const requesterSocketId = getSocketId(String(friendRequest.requester._id));
+      const recipientSocketId = getSocketId(String(friendRequest.recipient._id));
+      
+      console.log('Request accepted by:', userId);
       
       // Notify both users
-      io.to(getSocketId(friendRequest.requester._id.toString())).emit('friend_request_accepted', {
-        friend: friendRequest.recipient,
-      });
+      if (requesterSocketId) {
+        io.to(requesterSocketId).emit('friend_request_accepted', {
+          friend: {
+            _id: friendRequest.recipient._id.toString(),
+            name: friendRequest.recipient.name,
+            email: friendRequest.recipient.email,
+          },
+        });
+      }
       
-      io.to(getSocketId(friendRequest.recipient._id.toString())).emit('friend_request_accepted', {
-        friend: friendRequest.requester,
-      });
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit('friend_request_accepted', {
+          friend: {
+            _id: friendRequest.requester._id.toString(),
+            name: friendRequest.requester.name,
+            email: friendRequest.requester.email,
+          },
+        });
+      }
     } catch (err) {
       console.error('Accept friend request error', err);
+    }
+  });
     }
   });
 

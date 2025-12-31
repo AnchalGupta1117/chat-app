@@ -128,14 +128,24 @@ function App() {
     socket.on('friend_request_received', (data) => {
       // Normalize shape to match API response
       const normalized = {
-        _id: data.requestId,
+        _id: data._id || data.requestId,
         requester: data.requester,
         createdAt: data.createdAt,
       };
-      setFriendRequests((prev) => [...prev, normalized]);
+      console.log('Friend request received:', normalized);
+      setFriendRequests((prev) => {
+        // Avoid duplicates
+        if (prev.find((r) => r._id === normalized._id)) return prev;
+        return [...prev, normalized];
+      });
     });
     socket.on('friend_request_accepted', (data) => {
-      setFriendsList((prev) => [...prev, data.friend]);
+      console.log('Friend request accepted:', data);
+      setFriendsList((prev) => {
+        // Avoid duplicates
+        if (prev.find((f) => f._id === data.friend._id)) return prev;
+        return [...prev, data.friend];
+      });
     });
     socket.on('connect_error', (err) => {
       setError(err?.message || 'Socket connection failed');
@@ -390,6 +400,10 @@ function App() {
         }
         return prev;
       });
+      
+      // Reload friends list to ensure sync
+      const res = await getFriendsList();
+      setFriendsList(res.data || []);
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to accept request';
       setError(message);
