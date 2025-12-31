@@ -26,9 +26,11 @@ export default function ChatWindow({
   const endRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showActions, setShowActions] = useState(null);
+  const [actionMenuPos, setActionMenuPos] = useState({ top: 0, left: 0 });
   const typingTimeoutRef = useRef(null);
   const longPressTimer = useRef(null);
   const messagesRef = useRef(null);
+  const actionTriggerRef = useRef({});
 
   const emojis = ['😊', '❤️', '😂', '🔥', '👍', '😢', '😡', '🎉'];
 
@@ -117,13 +119,13 @@ export default function ChatWindow({
   return (
     <div className="chat-window">
       <header className="chat-header">
-        <div>
-          <div className="user-name">{selectedUser.name}</div>
-          <div className="chat-subtitle">{selectedUser.online ? 'Online' : 'Offline'}</div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {selectedMessages.length === 0 ? (
-            <>
+        {selectedMessages.length === 0 ? (
+          <>
+            <div>
+              <div className="user-name">{selectedUser.name}</div>
+              <div className="chat-subtitle">{selectedUser.online ? 'Online' : 'Offline'}</div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button
                 className="btn ghost"
                 style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
@@ -140,39 +142,39 @@ export default function ChatWindow({
               >
                 Hide User
               </button>
-            </>
-          ) : (
-            <>
-              <span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
-                {selectedMessages.length} selected
-              </span>
-              <button
-                className="btn ghost"
-                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-                onClick={onDeleteMessagesForMe}
-              >
-                Delete for Me
-              </button>
-              <button
-                className="btn ghost"
-                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-                onClick={onDeleteMessagesForEveryone}
-              >
-                Delete for Everyone
-              </button>
-              <button
-                className="btn ghost"
-                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-                onClick={onClearSelection}
-              >
-                Cancel
-              </button>
-            </>
-          )}
-          <div className={`pill ${connected ? 'pill-online' : 'pill-offline'}`}>
-            {connected ? 'Connected' : 'Connecting...'}
+              <div className={`pill ${connected ? 'pill-online' : 'pill-offline'}`}>
+                {connected ? 'Connected' : 'Connecting...'}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="selection-toolbar">
+            <span style={{ fontSize: '0.9rem', color: 'var(--muted)', flex: 1 }}>
+              {selectedMessages.length} selected
+            </span>
+            <button
+              className="btn ghost"
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+              onClick={onDeleteMessagesForMe}
+            >
+              Delete for Me
+            </button>
+            <button
+              className="btn ghost"
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+              onClick={onDeleteMessagesForEveryone}
+            >
+              Delete for Everyone
+            </button>
+            <button
+              className="btn ghost"
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+              onClick={onClearSelection}
+            >
+              Cancel
+            </button>
           </div>
-        </div>
+        )}
       </header>
 
       <div className="messages" ref={messagesRef}>
@@ -221,12 +223,12 @@ export default function ChatWindow({
                 </div>
 
                 {showActions === msg.id && (
-                  <div className="message-actions-menu">
+                  <div className="message-actions-menu" style={actionMenuPos}>
                     <button
                       className="action-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id);
+                        setShowEmojiPicker(msg.id);
                         setShowActions(null);
                       }}
                     >
