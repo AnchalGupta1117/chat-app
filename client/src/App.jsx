@@ -182,7 +182,6 @@ function App() {
         setLoadingFriends(true);
         const res = await getFriendsList();
         setFriendsList(res.data || []);
-        setUsers(res.data || []);
       } catch (error) {
         console.error('Error loading friends:', error);
       } finally {
