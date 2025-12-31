@@ -256,7 +256,7 @@ io.use((socket, next) => {
       });
       
       await friendRequest.save();
-      await friendRequest.populate('requester', 'name email _id');
+      await friendRequest.populate('requester', 'name _id');
       
       console.log('Friend request created:', friendRequest._id, 'Notifying user:', recipientId);
       
@@ -271,7 +271,6 @@ io.use((socket, next) => {
           requester: {
             _id: friendRequest.requester._id.toString(),
             name: friendRequest.requester.name,
-            email: friendRequest.requester.email,
           },
           createdAt: friendRequest.createdAt,
         });
@@ -296,7 +295,7 @@ io.use((socket, next) => {
         requestId,
         { status: 'accepted' },
         { new: true }
-      ).populate('requester', 'name email _id').populate('recipient', 'name email _id');
+      ).populate('requester', 'name _id').populate('recipient', 'name _id');
       
       if (!friendRequest) {
         socket.emit('request_error', { message: 'Request not found' });
@@ -314,7 +313,6 @@ io.use((socket, next) => {
           friend: {
             _id: friendRequest.recipient._id.toString(),
             name: friendRequest.recipient.name,
-            email: friendRequest.recipient.email,
           },
         });
       }
@@ -324,7 +322,6 @@ io.use((socket, next) => {
           friend: {
             _id: friendRequest.requester._id.toString(),
             name: friendRequest.requester.name,
-            email: friendRequest.requester.email,
           },
         });
       }

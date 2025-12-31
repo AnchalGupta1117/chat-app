@@ -21,7 +21,6 @@ export default function FriendRequests({ requests = [], loading = false, onAccep
         >
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{req.requester.name}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{req.requester.email}</div>
           </div>
           <div style={{ display: 'flex', gap: '0.3rem' }}>
             <button

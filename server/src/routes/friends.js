@@ -93,7 +93,7 @@ router.get('/requests', auth, async (req, res) => {
       recipient: req.userId,
       status: 'pending',
     })
-      .populate('requester', 'name email')
+      .populate('requester', 'name _id')
       .sort({ createdAt: -1 });
 
     res.json(requests);
@@ -112,8 +112,8 @@ router.get('/list', auth, async (req, res) => {
         { recipient: req.userId, status: 'accepted' },
       ],
     })
-      .populate('requester', '_id name email')
-      .populate('recipient', '_id name email');
+      .populate('requester', '_id name')
+      .populate('recipient', '_id name');
 
     // Extract friends - return the other person in each friendship
     const friends = friendships.map((f) => {

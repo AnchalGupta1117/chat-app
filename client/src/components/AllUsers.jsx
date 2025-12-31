@@ -75,8 +75,7 @@ export default function AllUsers({ currentUserId, socket, friendsList = [], frie
   const filteredUsers = allUsers.filter(
     (user) =>
       user.id !== currentUserId &&
-      (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -125,7 +124,6 @@ export default function AllUsers({ currentUserId, socket, friendsList = [], frie
             >
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{user.name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{user.email}</div>
               </div>
 
               {isFriend(user.id) ? (

@@ -23,7 +23,6 @@ export default function UserList({ users, selectedId, onSelect, onRemove }) {
             </div>
             <div className="user-meta">
               <div className="user-name">{user.name}</div>
-              <div className="user-email">{user.email}</div>
             </div>
             <span className={`status-dot ${user.online ? 'online' : 'offline'}`} aria-label={user.online ? 'online' : 'offline'} />
           </button>

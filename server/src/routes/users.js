@@ -7,13 +7,12 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-    const users = await User.find({ _id: { $ne: req.userId } }, 'name email');
+    const users = await User.find({ _id: { $ne: req.userId } }, 'name');
     const onlineSet = new Set(getOnlineUserIds());
 
     const mapped = users.map((u) => ({
       id: u._id.toString(),
       name: u.name,
-      email: u.email,
       online: onlineSet.has(u._id.toString()),
     }));
 
