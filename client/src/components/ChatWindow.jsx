@@ -27,6 +27,7 @@ export default function ChatWindow({
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showActions, setShowActions] = useState(null);
   const [actionMenuPos, setActionMenuPos] = useState({ top: 0, left: 0 });
+  const [emojiPickerPos, setEmojiPickerPos] = useState({ top: 0, left: 0 });
   const typingTimeoutRef = useRef(null);
   const longPressTimer = useRef(null);
   const messagesRef = useRef(null);
@@ -214,9 +215,15 @@ export default function ChatWindow({
                       {msg.content}
                     </span>
                   </div>
-                  <div className="message-actions-trigger" onClick={(e) => {
+                  <div className="message-actions-trigger" ref={(el) => { if (el) actionTriggerRef.current[msg.id] = el; }} onClick={(e) => {
                     e.stopPropagation();
-                    setShowActions(showActions === msg.id ? null : msg.id);
+                    if (showActions === msg.id) {
+                      setShowActions(null);
+                    } else {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setActionMenuPos({ top: rect.bottom + 5, left: rect.left });
+                      setShowActions(msg.id);
+                    }
                   }}>
                     ⋯
                   </div>
@@ -228,6 +235,8 @@ export default function ChatWindow({
                       className="action-btn"
                       onClick={(e) => {
                         e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setEmojiPickerPos({ top: rect.bottom + 5, left: rect.left });
                         setShowEmojiPicker(msg.id);
                         setShowActions(null);
                       }}
@@ -246,7 +255,7 @@ export default function ChatWindow({
                     </button>
                   </div>
                 )}
-
+style={emojiPickerPos} 
                 {showEmojiPicker === msg.id && (
                   <div className="emoji-picker" onClick={(e) => e.stopPropagation()}>
                     {emojis.map((emoji) => (
@@ -278,7 +287,7 @@ export default function ChatWindow({
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   {mine && (
                     <>
-                      {msg.seenBy && msg.seenBy.length > 0 && msg.seenBy.includes(selectedUser?.id) ? (
+                      {msg.seenBy && msg.seenBy.length > 0 && msg.seenBy.some(id => id.toString() === selectedUser?.id.toString()) ? (
                         <span style={{ marginLeft: '0.3rem', color: '#38bdf8' }}>✓✓</span>
                       ) : (
                         <span style={{ marginLeft: '0.3rem', color: '#9ca3af' }}>✓</span>
