@@ -28,12 +28,32 @@ export default function ChatWindow({
   const [showActions, setShowActions] = useState(null);
   const typingTimeoutRef = useRef(null);
   const longPressTimer = useRef(null);
+  const messagesRef = useRef(null);
 
   const emojis = ['😊', '❤️', '😂', '🔥', '👍', '😢', '😡', '🎉'];
 
   const getReplyContent = (messageId) => {
     return messages.find((m) => m.id === messageId);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (messagesRef.current && !messagesRef.current.contains(e.target)) {
+        return;
+      }
+      // Close menu if clicking outside the menu itself
+      if (showActions) {
+        const menuElement = document.querySelector('.message-actions-menu');
+        const triggerElement = document.querySelector('.message-actions-trigger');
+        if (menuElement && !menuElement.contains(e.target) && (!triggerElement || !triggerElement.contains(e.target))) {
+          setShowActions(null);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showActions]);
 
   const handleTextChange = (text) => {
     onMessageChange(text);
@@ -155,7 +175,7 @@ export default function ChatWindow({
         </div>
       </header>
 
-      <div className="messages">
+      <div className="messages" ref={messagesRef}>
         {loading && <div className="muted">Loading messages...</div>}
         {messages.map((msg) => {
           const mine = msg.sender === currentUserId;
@@ -254,11 +274,14 @@ export default function ChatWindow({
 
                 <div className="timestamp">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  {msg.seenBy && msg.seenBy.includes(selectedUser?.id) && mine && (
-                    <span style={{ marginLeft: '0.3rem', color: '#38bdf8' }}>✓✓</span>
-                  )}
-                  {msg.seenBy && !msg.seenBy.includes(selectedUser?.id) && mine && (
-                    <span style={{ marginLeft: '0.3rem', color: '#9ca3af' }}>✓</span>
+                  {mine && (
+                    <>
+                      {msg.seenBy && msg.seenBy.length > 0 && msg.seenBy.includes(selectedUser?.id) ? (
+                        <span style={{ marginLeft: '0.3rem', color: '#38bdf8' }}>✓✓</span>
+                      ) : (
+                        <span style={{ marginLeft: '0.3rem', color: '#9ca3af' }}>✓</span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
