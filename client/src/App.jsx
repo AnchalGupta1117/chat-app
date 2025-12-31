@@ -212,10 +212,12 @@ function App() {
         });
         
         setUsers(filtered);
-        if (selectedUser) {
-          const updatedSelected = filtered.find((u) => u.id === selectedUser.id);
-          setSelectedUser(updatedSelected || null);
-        }
+        // Keep selected user in sync using state updater to avoid circular dependency
+        setSelectedUser((prev) => {
+          if (!prev) return null;
+          const updated = filtered.find((u) => u.id === prev.id);
+          return updated || null;
+        });
       } catch (err) {
         console.error(err);
         setError('Unable to load users');
@@ -225,7 +227,7 @@ function App() {
     };
 
     loadUsers();
-  }, [token, onlineIds, searchQuery, selectedUser]);
+  }, [token, onlineIds, searchQuery]);
 
   const handleAuth = async (payload) => {
     setLoadingAuth(true);
