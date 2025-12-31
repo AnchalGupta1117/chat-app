@@ -27,9 +27,9 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [allUsers, setAllUsers] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
-
-  const socketRef = useRef(null);
-  const selectedIdRef = useRef(null);
+  const [typingUsers, setTypingUsers] = useState({});
+  const [replyingTo, setReplyingTo] = useState(null);
+  const typingTimeoutRef = useRef({});
 
   useEffect(() => {
     if (token) {
@@ -74,6 +74,47 @@ function App() {
     socket.on('user_offline', ({ userId }) => {
       setOnlineIds((prev) => prev.filter((id) => id !== userId));
     });
+    socket.on('user_typing', ({ from }) => {
+      setTypingUsers((prev) => ({ ...prev, [from]: true }));
+      // Clear timeout if exists
+      if (typingTimeoutRef.current[from]) {
+        clearTimeout(typingTimeoutRef.current[from]);
+      }
+      // Auto-clear after 3 seconds
+      typingTimeoutRef.current[from] = setTimeout(() => {
+        setTypingUsers((prev) => {
+          const updated = { ...prev };
+          delete updated[from];
+          return updated;
+        });
+      }, 3000);
+    });
+    socket.on('user_stop_typing', ({ from }) => {
+      if (typingTimeoutRef.current[from]) {
+        clearTimeout(typingTimeoutRef.current[from]);
+      }
+      setTypingUsers((prev) => {
+        const updated = { ...prev };
+        delete updated[from];
+        return updated;
+      });
+    });
+    socket.on('message_seen', ({ messageId, userId }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, seenBy: [...new Set([...(msg.seenBy || []), userId])] }
+            : msg
+        )
+      );
+    });
+    socket.on('reaction_updated', ({ messageId, reactions }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, reactions } : msg
+        )
+      );
+    });
     socket.on('connect_error', (err) => {
       setError(err?.message || 'Socket connection failed');
     });
@@ -81,6 +122,10 @@ function App() {
       const isRelevant = msg.sender === selectedIdRef.current || msg.recipient === selectedIdRef.current;
       if (isRelevant) {
         setMessages((prev) => [...prev, msg]);
+        // Auto mark as seen
+        setTimeout(() => {
+          socketRef.current?.emit('mark_as_seen', { messageId: msg.id });
+        }, 500);
       }
     });
 
@@ -176,7 +221,12 @@ function App() {
   const sendMessage = () => {
     if (!messageText.trim() || !selectedUser) return;
     const payload = { to: selectedUser.id, content: messageText.trim() };
+    if (replyingTo) {
+      payload.replyTo = replyingTo;
+    }
     setMessageText('');
+    setReplyingTo(null);
+    socketRef.current?.emit('stop_typing', { to: selectedUser.id });
 
     socketRef.current?.emit('private_message', payload, (resp) => {
       if (resp?.ok && resp.message) {
@@ -328,6 +378,16 @@ function App() {
           onClearSelection={() => setSelectedMessages([])}
           loading={loadingMessages}
           connected={socketConnected}
+          socket={socketRef.current}
+          typingUsers={typingUsers}
+          replyingTo={replyingTo}
+          onSetReplyingTo={setReplyingTo}
+          onTyping={() => {
+            socketRef.current?.emit('typing', { to: selectedUser?.id });
+          }}
+          onAddReaction={(messageId, emoji) => {
+            socketRef.current?.emit('add_reaction', { messageId, emoji });
+          }}
         />
         {error && <div style={{ padding: '0.75rem 1rem', color: '#fca5a5' }}>{error}</div>}
       </div>

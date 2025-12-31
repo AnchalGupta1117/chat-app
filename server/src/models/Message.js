@@ -6,6 +6,14 @@ const messageSchema = new mongoose.Schema(
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, required: true, trim: true },
     deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
+    seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    reactions: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        emoji: { type: String, required: true },
+      },
+    ],
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

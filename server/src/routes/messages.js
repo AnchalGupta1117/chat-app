@@ -16,13 +16,20 @@ router.get('/:userId', auth, async (req, res) => {
       deletedFor: { $ne: req.userId },
     })
       .sort({ createdAt: 1 })
-      .limit(500);
+      .limit(500)
+      .populate('replyTo');
 
     const formatted = messages.map((m) => ({
       id: m._id.toString(),
       sender: m.sender.toString(),
       recipient: m.recipient.toString(),
       content: m.content,
+      replyTo: m.replyTo ? m.replyTo._id.toString() : null,
+      seenBy: m.seenBy.map((id) => id.toString()),
+      reactions: m.reactions.map((r) => ({
+        userId: r.userId.toString(),
+        emoji: r.emoji,
+      })),
       createdAt: m.createdAt,
     }));
 
