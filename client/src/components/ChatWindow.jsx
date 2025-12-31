@@ -26,8 +26,8 @@ export default function ChatWindow({
   const endRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showActions, setShowActions] = useState(null);
-  const [actionMenuPos, setActionMenuPos] = useState({ top: 0, left: 0 });
-  const [emojiPickerPos, setEmojiPickerPos] = useState({ top: 0, left: 0 });
+  const [actionMenuPos, setActionMenuPos] = useState({ top: '0px', left: '0px' });
+  const [emojiPickerPos, setEmojiPickerPos] = useState({ top: '0px', left: '0px' });
   const typingTimeoutRef = useRef(null);
   const longPressTimer = useRef(null);
   const messagesRef = useRef(null);
@@ -221,7 +221,7 @@ export default function ChatWindow({
                       setShowActions(null);
                     } else {
                       const rect = e.currentTarget.getBoundingClientRect();
-                      setActionMenuPos({ top: rect.bottom + 5, left: rect.left });
+                      setActionMenuPos({ top: `${rect.bottom + 5}px`, left: `${rect.left}px` });
                       setShowActions(msg.id);
                     }
                   }}>
@@ -236,7 +236,7 @@ export default function ChatWindow({
                       onClick={(e) => {
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setEmojiPickerPos({ top: rect.bottom + 5, left: rect.left });
+                        setEmojiPickerPos({ top: `${rect.bottom + 5}px`, left: `${rect.left}px` });
                         setShowEmojiPicker(msg.id);
                         setShowActions(null);
                       }}
