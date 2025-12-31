@@ -332,8 +332,6 @@ io.use((socket, next) => {
       console.error('Accept friend request error', err);
     }
   });
-    }
-  });
 
   socket.on('disconnect', () => {
     removeOnline(userId);
