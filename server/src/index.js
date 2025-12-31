@@ -102,10 +102,10 @@ io.use((socket, next) => {
   socket.on('private_message', async (data, ack) => {
     try {
       const to = data?.to;
-      const content = data?.content?.trim();
+      const content = data?.content;
       const replyTo = data?.replyTo;
 
-      if (!to || !content) {
+      if (!to || !content || !content.trim()) {
         ack?.({ ok: false, message: 'Recipient and message are required' });
         return;
       }
@@ -130,8 +130,6 @@ io.use((socket, next) => {
       const targetSocketId = getSocketId(to);
       if (targetSocketId) {
         io.to(targetSocketId).emit('private_message', payload);
-        // Also emit mark_as_seen to notify sender that recipient has received it
-        io.to(targetSocketId).emit('message_seen', { messageId: message._id.toString(), userId: to });
       }
 
       ack?.({ ok: true, message: payload });

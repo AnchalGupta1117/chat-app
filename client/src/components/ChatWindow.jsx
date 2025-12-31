@@ -25,7 +25,9 @@ export default function ChatWindow({
 }) {
   const endRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
+  const [showActions, setShowActions] = useState(null);
   const typingTimeoutRef = useRef(null);
+  const longPressTimer = useRef(null);
 
   const emojis = ['😊', '❤️', '😂', '🔥', '👍', '😢', '😡', '🎉'];
 
@@ -49,6 +51,34 @@ export default function ChatWindow({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSend();
+    }
+  };
+
+  const handleMouseDown = (msgId) => {
+    longPressTimer.current = setTimeout(() => {
+      onToggleSelectMessage(msgId);
+      longPressTimer.current = null;
+    }, 500);
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleTouchStart = (msgId) => {
+    longPressTimer.current = setTimeout(() => {
+      onToggleSelectMessage(msgId);
+      longPressTimer.current = null;
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
 
@@ -143,34 +173,60 @@ export default function ChatWindow({
               )}
               <div
                 className={`message ${mine ? 'mine' : 'theirs'} ${isSelected ? 'selected' : ''}`}
-                onClick={() => onToggleSelectMessage(msg.id)}
-                style={{ cursor: 'pointer', opacity: isSelected ? 0.7 : 1, position: 'relative' }}
+                onMouseDown={() => handleMouseDown(msg.id)}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={() => handleTouchStart(msg.id)}
+                onTouchEnd={handleTouchEnd}
+                style={{ 
+                  cursor: 'pointer', 
+                  opacity: isSelected ? 0.7 : 1, 
+                  position: 'relative',
+                  userSelect: 'none'
+                }}
               >
                 <div className="bubble-wrapper">
                   <div className="bubble">
                     {isSelected && <span style={{ marginRight: '0.5rem' }}>✓</span>}
-                    {msg.content}
+                    <span style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                      {msg.content}
+                    </span>
                   </div>
-                  <div className="message-actions">
-                    <button
-                      className="emoji-btn"
-                      onClick={() => setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id)}
-                      title="Add reaction"
-                    >
-                      😊
-                    </button>
-                    <button
-                      className="reply-btn"
-                      onClick={() => onSetReplyingTo(msg.id)}
-                      title="Reply to message"
-                    >
-                      ↩️
-                    </button>
+                  <div className="message-actions-trigger" onClick={(e) => {
+                    e.stopPropagation();
+                    setShowActions(showActions === msg.id ? null : msg.id);
+                  }}>
+                    ⋯
                   </div>
                 </div>
 
+                {showActions === msg.id && (
+                  <div className="message-actions-menu">
+                    <button
+                      className="action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id);
+                        setShowActions(null);
+                      }}
+                    >
+                      😊 React
+                    </button>
+                    <button
+                      className="action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetReplyingTo(msg.id);
+                        setShowActions(null);
+                      }}
+                    >
+                      ↩️ Reply
+                    </button>
+                  </div>
+                )}
+
                 {showEmojiPicker === msg.id && (
-                  <div className="emoji-picker">
+                  <div className="emoji-picker" onClick={(e) => e.stopPropagation()}>
                     {emojis.map((emoji) => (
                       <button
                         key={emoji}
@@ -199,7 +255,10 @@ export default function ChatWindow({
                 <div className="timestamp">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   {msg.seenBy && msg.seenBy.includes(selectedUser?.id) && mine && (
-                    <span style={{ marginLeft: '0.3rem' }}>✓✓</span>
+                    <span style={{ marginLeft: '0.3rem', color: '#38bdf8' }}>✓✓</span>
+                  )}
+                  {msg.seenBy && !msg.seenBy.includes(selectedUser?.id) && mine && (
+                    <span style={{ marginLeft: '0.3rem', color: '#9ca3af' }}>✓</span>
                   )}
                 </div>
               </div>

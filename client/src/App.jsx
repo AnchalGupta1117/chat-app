@@ -125,10 +125,12 @@ function App() {
       const isRelevant = msg.sender === selectedIdRef.current || msg.recipient === selectedIdRef.current;
       if (isRelevant) {
         setMessages((prev) => [...prev, msg]);
-        // Auto mark as seen
-        setTimeout(() => {
-          socketRef.current?.emit('mark_as_seen', { messageId: msg.id });
-        }, 500);
+        // Mark as seen if we're viewing this chat
+        if (msg.sender === selectedIdRef.current) {
+          setTimeout(() => {
+            socketRef.current?.emit('mark_as_seen', { messageId: msg.id });
+          }, 500);
+        }
       }
     });
 
@@ -223,7 +225,7 @@ function App() {
 
   const sendMessage = () => {
     if (!messageText.trim() || !selectedUser) return;
-    const payload = { to: selectedUser.id, content: messageText.trim() };
+    const payload = { to: selectedUser.id, content: messageText };
     if (replyingTo) {
       payload.replyTo = replyingTo;
     }
