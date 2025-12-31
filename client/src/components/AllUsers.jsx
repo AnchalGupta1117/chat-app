@@ -69,12 +69,12 @@ export default function AllUsers({ currentUserId, socket, friendsList = [], frie
     socket.emit('send_friend_request', { recipientId });
   };
 
-  const isFriend = (userId) => friendsList.some((f) => f._id === userId);
+  const isFriend = (userId) => friendsList.some((f) => f._id === userId || f.id === userId);
   const isRequested = (userId) => sentRequests[userId];
 
   const filteredUsers = allUsers.filter(
     (user) =>
-      user._id !== currentUserId &&
+      user.id !== currentUserId &&
       (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -128,7 +128,7 @@ export default function AllUsers({ currentUserId, socket, friendsList = [], frie
                 <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{user.email}</div>
               </div>
 
-              {isFriend(user._id) ? (
+              {isFriend(user.id) ? (
                 <button
                   disabled
                   style={{
@@ -144,7 +144,7 @@ export default function AllUsers({ currentUserId, socket, friendsList = [], frie
                 >
                   ✓ Friends
                 </button>
-              ) : isRequested(user._id) ? (
+              ) : isRequested(user.id) ? (
                 <button
                   disabled
                   style={{
@@ -163,7 +163,7 @@ export default function AllUsers({ currentUserId, socket, friendsList = [], frie
                 </button>
               ) : (
                 <button
-                  onClick={() => sendFriendRequest(user._id)}
+                  onClick={() => sendFriendRequest(user.id)}
                   style={{
                     padding: '0.4rem 0.8rem',
                     background: 'var(--primary)',

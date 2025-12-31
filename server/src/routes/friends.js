@@ -8,7 +8,7 @@ const auth = require('../middleware/auth');
 router.post('/request', auth, async (req, res) => {
   try {
     const { recipientId } = req.body;
-    const requesterId = req.user.id;
+    const requesterId = req.userId; // Use req.userId from auth middleware
 
     if (requesterId === recipientId) {
       return res.status(400).json({ message: 'Cannot send request to yourself' });
@@ -49,7 +49,7 @@ router.put('/request/:requestId/accept', auth, async (req, res) => {
       return res.status(404).json({ message: 'Friend request not found' });
     }
 
-    if (friendRequest.recipient.toString() !== req.user.id) {
+    if (friendRequest.recipient.toString() !== req.userId) {
       return res.status(403).json({ message: 'You can only accept requests sent to you' });
     }
 
@@ -72,7 +72,7 @@ router.put('/request/:requestId/reject', auth, async (req, res) => {
       return res.status(404).json({ message: 'Friend request not found' });
     }
 
-    if (friendRequest.recipient.toString() !== req.user.id) {
+    if (friendRequest.recipient.toString() !== req.userId) {
       return res.status(403).json({ message: 'You can only reject requests sent to you' });
     }
 
@@ -90,7 +90,7 @@ router.put('/request/:requestId/reject', auth, async (req, res) => {
 router.get('/requests', auth, async (req, res) => {
   try {
     const requests = await Friend.find({
-      recipient: req.user.id,
+      recipient: req.userId,
       status: 'pending',
     })
       .populate('requester', 'name email')
@@ -108,16 +108,19 @@ router.get('/list', auth, async (req, res) => {
   try {
     const friendships = await Friend.find({
       $or: [
-        { requester: req.user.id, status: 'accepted' },
-        { recipient: req.user.id, status: 'accepted' },
+        { requester: req.userId, status: 'accepted' },
+        { recipient: req.userId, status: 'accepted' },
       ],
     })
-      .populate('requester', 'id name email online')
-      .populate('recipient', 'id name email online');
+      .populate('requester', '_id name email')
+      .populate('recipient', '_id name email');
 
-    // Extract friend IDs
+    // Extract friends - return the other person in each friendship
     const friends = friendships.map((f) => {
-      return f.requester._id.toString() === req.user.id ? f.recipient : f.requester;
+      const requesterIdStr = f.requester._id.toString();
+      const userIdStr = String(req.userId);
+      // If current user is requester, return recipient; otherwise return requester
+      return requesterIdStr === userIdStr ? f.recipient : f.requester;
     });
 
     res.json(friends);
@@ -132,8 +135,8 @@ router.delete('/:friendId', auth, async (req, res) => {
   try {
     await Friend.deleteOne({
       $or: [
-        { requester: req.user.id, recipient: req.params.friendId },
-        { requester: req.params.friendId, recipient: req.user.id },
+        { requester: req.userId, recipient: req.params.friendId },
+        { requester: req.params.friendId, recipient: req.userId },
       ],
     });
 
