@@ -113,6 +113,12 @@ io.use((socket, next) => {
         ack?.({ ok: false, message: 'Recipient and message are required' });
         return;
       }
+      
+      // Message length validation (max 5000 characters)
+      if (content.trim().length > 5000) {
+        ack?.({ ok: false, message: 'Message too long (max 5000 characters)' });
+        return;
+      }
 
       // Check if users are friends
       const Friend = require('./models/Friend');

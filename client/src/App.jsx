@@ -272,6 +272,7 @@ function App() {
       const { data } = await api.post(endpoint, payload);
       setToken(data.token);
       setCurrentUser(data.user);
+      setError(''); // Clear any previous errors
     } catch (err) {
       const message = err.response?.data?.message || 'Authentication failed';
       setError(message);
@@ -455,10 +456,25 @@ function App() {
       <div className="card" style={{ padding: 0 }}>
         <div className="topbar">
           <div>
-            <div className="brand">Realtime Chat</div>
-            <div className="muted">Logged in as {currentUser.name}</div>
+            <div className="brand">💬 Realtime Chat</div>
+            <div className="muted" style={{ fontSize: '0.85rem' }}>Logged in as {currentUser.name}</div>
           </div>
-          <button className="btn ghost" onClick={handleLogout}>Logout</button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div style={{ 
+              padding: '0.3rem 0.6rem', 
+              background: socketConnected ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)', 
+              color: socketConnected ? '#4ade80' : '#fca5a5',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              border: `1px solid ${socketConnected ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+            }}>
+              {socketConnected ? '● Online' : '● Offline'}
+            </div>
+            <button className="btn ghost" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }} onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
         </div>
         
         <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem 0.5rem' }}>

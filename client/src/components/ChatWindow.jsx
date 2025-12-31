@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { formatMessageTime } from '../utils/formatTime';
 
 export default function ChatWindow({
   currentUserId,
@@ -286,7 +287,7 @@ export default function ChatWindow({
                 )}
 
                 <div className="timestamp">
-                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatMessageTime(msg.createdAt)}
                   {mine && (
                     <>
                       {msg.seenBy && msg.seenBy.length > 0 && msg.seenBy.some(id => id.toString() === selectedUser?.id.toString()) ? (
@@ -336,9 +337,15 @@ export default function ChatWindow({
           <textarea
             placeholder={connected ? 'Type a message... (Enter to send, Shift+Enter for new line)' : 'Waiting for socket...'}
             value={messageText}
-            onChange={(e) => handleTextChange(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val.length <= 5000) {
+                handleTextChange(val);
+              }
+            }}
             onKeyDown={handleKeyDown}
             disabled={!selectedUser || !connected}
+            maxLength="5000"
             style={{
               minHeight: '2.5rem',
               maxHeight: '8rem',
@@ -346,9 +353,16 @@ export default function ChatWindow({
               overflow: 'auto',
             }}
           />
-          <button className="btn primary" type="submit" disabled={!messageText.trim() || !connected}>
-            Send
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {messageText.length > 4500 && (
+              <span style={{ fontSize: '0.75rem', color: messageText.length >= 5000 ? '#ef4444' : 'var(--muted)' }}>
+                {messageText.length}/5000
+              </span>
+            )}
+            <button className="btn primary" type="submit" disabled={!messageText.trim() || !connected}>
+              Send
+            </button>
+          </div>
         </div>
       </form>
     </div>
