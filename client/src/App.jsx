@@ -497,6 +497,92 @@ function App() {
             <div className="brand">💬 Realtime Chat</div>
             <div className="muted" style={{ fontSize: '0.85rem' }}>Logged in as {currentUser.name}</div>
           </div>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              style={{
+                display: 'none',
+                padding: '0.5rem',
+                background: 'var(--panel-2)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                color: 'var(--text)',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                transition: 'all 150ms ease',
+              }}
+              className="mobile-settings-btn"
+            >
+              ⚙️
+            </button>
+            {showSettings && (
+              <div className="settings-popup mobile-settings-popup" style={{
+                position: 'absolute',
+                top: 'calc(100% + 0.5rem)',
+                right: 0,
+                minWidth: '200px',
+                background: 'var(--panel)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                overflow: 'hidden',
+                zIndex: 1000,
+                display: 'none',
+              }}>
+                <button
+                  onClick={() => {
+                    setShowSettings(false);
+                    handleLogout();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'background 150ms ease',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--panel-2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span>🚪</span>
+                  <span>Logout</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSettings(false);
+                    handleDeleteAccount();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'background 150ms ease',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span>🗑️</span>
+                  <span>Delete Account</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         
         <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem 0.5rem' }}>
@@ -580,7 +666,7 @@ function App() {
         )}
         
         {/* Settings Menu at Bottom */}
-        <div data-settings-menu style={{ marginTop: 'auto', padding: '0.75rem 1rem', borderTop: '1px solid var(--border)', position: 'relative' }}>
+        <div data-settings-menu className="desktop-settings" style={{ marginTop: 'auto', padding: '0.75rem 1rem', borderTop: '1px solid var(--border)', position: 'relative' }}>
           <button
             onClick={() => setShowSettings(!showSettings)}
             style={{
@@ -606,7 +692,7 @@ function App() {
           </button>
           
           {showSettings && (
-            <div style={{
+            <div className="settings-popup" style={{
               position: 'absolute',
               bottom: '100%',
               left: '1rem',

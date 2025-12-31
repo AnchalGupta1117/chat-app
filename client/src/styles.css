@@ -531,6 +531,21 @@ body {
   .chat-window { min-height: 60vh; }
   .emoji-picker { width: 180px; }
   
+  /* Show mobile settings button in top right */
+  .mobile-settings-btn {
+    display: block !important;
+  }
+  
+  /* Show mobile settings popup */
+  .mobile-settings-popup {
+    display: block !important;
+  }
+  
+  /* Hide desktop settings menu at bottom */
+  .desktop-settings {
+    display: none !important;
+  }
+  
   .message {
     max-width: 75% !important;
     min-width: 0;
