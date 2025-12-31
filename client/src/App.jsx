@@ -192,7 +192,7 @@ function App() {
     loadFriends();
   }, [token]);
 
-  useEffect(() {
+  useEffect(() => {
     if (!token) return;
     const loadUsers = async () => {
       setLoadingUsers(true);
