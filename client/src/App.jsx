@@ -5,7 +5,7 @@ import UserList from './components/UserList';
 import ChatWindow from './components/ChatWindow';
 import FriendRequests from './components/FriendRequests';
 import AllUsers from './components/AllUsers';
-import { api, API_URL, setAuthToken, getFriendsList } from './api';
+import { api, API_URL, setAuthToken, getFriendsList, getFriendRequests, acceptFriendRequest, rejectFriendRequest } from './api';
 import './styles.css';
 
 const storedToken = localStorage.getItem('chatToken') || '';
@@ -33,6 +33,7 @@ function App() {
   const [replyingTo, setReplyingTo] = useState(null);
   const [friendsList, setFriendsList] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
+  const [loadingFriendRequests, setLoadingFriendRequests] = useState(false);
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' or 'explore'
   const [loadingFriends, setLoadingFriends] = useState(false);
   
@@ -125,7 +126,13 @@ function App() {
       );
     });
     socket.on('friend_request_received', (data) => {
-      setFriendRequests((prev) => [...prev, data]);
+      // Normalize shape to match API response
+      const normalized = {
+        _id: data.requestId,
+        requester: data.requester,
+        createdAt: data.createdAt,
+      };
+      setFriendRequests((prev) => [...prev, normalized]);
     });
     socket.on('friend_request_accepted', (data) => {
       setFriendsList((prev) => [...prev, data.friend]);
@@ -190,6 +197,24 @@ function App() {
     };
 
     loadFriends();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const loadFriendRequests = async () => {
+      try {
+        setLoadingFriendRequests(true);
+        const res = await getFriendRequests();
+        setFriendRequests(res.data || []);
+      } catch (err) {
+        console.error('Error loading friend requests:', err);
+      } finally {
+        setLoadingFriendRequests(false);
+      }
+    };
+
+    loadFriendRequests();
   }, [token]);
 
   useEffect(() => {
@@ -350,6 +375,37 @@ function App() {
     }
   };
 
+  const handleAcceptRequest = async (requestId) => {
+    try {
+      await acceptFriendRequest(requestId);
+      setFriendRequests((prev) => prev.filter((r) => r._id !== requestId));
+
+      // Add the requester to friends list if available
+      setFriendsList((prev) => {
+        const req = friendRequests.find((r) => r._id === requestId);
+        if (req) {
+          const already = prev.some((f) => f._id === req.requester._id);
+          if (already) return prev;
+          return [...prev, req.requester];
+        }
+        return prev;
+      });
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to accept request';
+      setError(message);
+    }
+  };
+
+  const handleRejectRequest = async (requestId) => {
+    try {
+      await rejectFriendRequest(requestId);
+      setFriendRequests((prev) => prev.filter((r) => r._id !== requestId));
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to reject request';
+      setError(message);
+    }
+  };
+
   if (!token || !currentUser) {
     return (
       <div className="auth-card card">
@@ -414,7 +470,12 @@ function App() {
 
         {activeTab === 'friends' ? (
           <>
-            <FriendRequests onRequestHandled={() => {}} />
+            <FriendRequests
+              requests={friendRequests}
+              loading={loadingFriendRequests}
+              onAccept={handleAcceptRequest}
+              onReject={handleRejectRequest}
+            />
             <div style={{ padding: '0.5rem 1rem' }}>
               <input
                 type="text"

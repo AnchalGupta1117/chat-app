@@ -1,45 +1,4 @@
-import { useEffect, useState } from 'react';
-import { getFriendRequests, acceptFriendRequest, rejectFriendRequest } from '../api';
-
-export default function FriendRequests({ onRequestHandled }) {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
-    try {
-      setLoading(true);
-      const res = await getFriendRequests();
-      setRequests(res.data || []);
-    } catch (error) {
-      console.error('Error loading friend requests:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAccept = async (requestId) => {
-    try {
-      await acceptFriendRequest(requestId);
-      setRequests(requests.filter((r) => r._id !== requestId));
-      onRequestHandled?.();
-    } catch (error) {
-      console.error('Error accepting request:', error);
-    }
-  };
-
-  const handleReject = async (requestId) => {
-    try {
-      await rejectFriendRequest(requestId);
-      setRequests(requests.filter((r) => r._id !== requestId));
-    } catch (error) {
-      console.error('Error rejecting request:', error);
-    }
-  };
-
+export default function FriendRequests({ requests = [], loading = false, onAccept, onReject }) {
   if (loading) return <div style={{ padding: '0.75rem', color: 'var(--muted)' }}>Loading...</div>;
   if (!requests.length) return null;
 
@@ -66,7 +25,7 @@ export default function FriendRequests({ onRequestHandled }) {
           </div>
           <div style={{ display: 'flex', gap: '0.3rem' }}>
             <button
-              onClick={() => handleAccept(req._id)}
+              onClick={() => onAccept?.(req._id)}
               style={{
                 padding: '0.3rem 0.6rem',
                 fontSize: '0.8rem',
@@ -81,7 +40,7 @@ export default function FriendRequests({ onRequestHandled }) {
               Accept
             </button>
             <button
-              onClick={() => handleReject(req._id)}
+              onClick={() => onReject?.(req._id)}
               style={{
                 padding: '0.3rem 0.6rem',
                 fontSize: '0.8rem',
