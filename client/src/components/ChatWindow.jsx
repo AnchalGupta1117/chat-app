@@ -129,40 +129,41 @@ export default function ChatWindow({
 
   return (
     <div className="chat-window">
-      <header className="chat-header">
-        {selectedMessages.length === 0 ? (
-          <>
-            <div>
-              <div className="user-name">{selectedUser.name}</div>
-              <div className="chat-subtitle">{selectedUser.online ? 'Online' : 'Offline'}</div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button
-                className="btn ghost"
-                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-                onClick={onDeleteConversation}
-                title="Clear messages for both"
-              >
-                Clear Chat
-              </button>
-              <button
-                className="btn ghost"
-                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-                onClick={onHideUser}
-                title="Remove from your chat list"
-              >
-                Hide User
-              </button>
-              <div className={`pill ${connected ? 'pill-online' : 'pill-offline'}`}>
-                {connected ? 'Connected' : 'Connecting...'}
+      <div className="messages" ref={messagesRef}>
+        <header className="chat-header">
+          {selectedMessages.length === 0 ? (
+            <>
+              <div>
+                <div className="user-name">{selectedUser.name}</div>
+                <div className="chat-subtitle">{selectedUser.online ? 'Online' : 'Offline'}</div>
               </div>
-            </div>
-          </>
-        ) : (
-          <div className="selection-toolbar">
-            <span style={{ fontSize: '0.9rem', color: 'var(--muted)', flex: 1 }}>
-              {selectedMessages.length} selected
-            </span>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  className="btn ghost"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+                  onClick={onDeleteConversation}
+                  title="Clear messages for both"
+                >
+                  Clear Chat
+                </button>
+                <button
+                  className="btn ghost"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+                  onClick={onHideUser}
+                  title="Remove from your chat list"
+                >
+                  Hide User
+                </button>
+                <div className={`pill ${connected ? 'pill-online' : 'pill-offline'}`}>
+                  {connected ? 'Connected' : 'Connecting...'}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="selection-toolbar">
+              <span style={{ fontSize: '0.9rem', color: 'var(--muted)', flex: 1 }}>
+                {selectedMessages.length} selected
+              </span>
             <button
               className="btn ghost"
               style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
@@ -186,9 +187,8 @@ export default function ChatWindow({
             </button>
           </div>
         )}
-      </header>
+        </header>
 
-      <div className="messages" ref={messagesRef}>
         {loading && <div className="muted">Loading messages...</div>}
         {messages.map((msg) => {
           const mine = msg.sender === currentUserId;
@@ -309,7 +309,7 @@ export default function ChatWindow({
           </div>
         )}
         <div ref={endRef} />
-      </div>
+        </div>
 
       <form
         className="composer"
