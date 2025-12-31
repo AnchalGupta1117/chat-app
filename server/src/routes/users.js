@@ -24,16 +24,4 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-router.delete('/me', auth, async (req, res) => {
-  try {
-    const Message = require('../models/Message');
-    await Message.deleteMany({ $or: [{ sender: req.userId }, { recipient: req.userId }] });
-    await User.findByIdAndDelete(req.userId);
-    return res.json({ message: 'Account deleted successfully' });
-  } catch (err) {
-    console.error('Delete account error', err);
-    return res.status(500).json({ message: 'Unable to delete account' });
-  }
-});
-
 module.exports = router;

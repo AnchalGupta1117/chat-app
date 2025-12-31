@@ -24,6 +24,9 @@ function App() {
   const [error, setError] = useState('');
   const [socketConnected, setSocketConnected] = useState(false);
   const [onlineIds, setOnlineIds] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedMessages, setSelectedMessages] = useState([]);
 
   const socketRef = useRef(null);
   const selectedIdRef = useRef(null);
@@ -116,9 +119,21 @@ function App() {
       try {
         const { data } = await api.get('/api/users');
         const merged = data.map((u) => ({ ...u, online: onlineIds.includes(u.id) }));
-        setUsers(merged);
+        setAllUsers(merged);
+        
+        // Filter by hidden users and search query
+        const hiddenUsers = JSON.parse(localStorage.getItem('hiddenUsers') || '[]');
+        const filtered = merged.filter((u) => {
+          const matchesSearch = !searchQuery || 
+            u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchQuery.toLowerCase());
+          const isHidden = hiddenUsers.includes(u.id);
+          return matchesSearch && (searchQuery ? true : !isHidden);
+        });
+        
+        setUsers(filtered);
         if (selectedUser) {
-          const updatedSelected = merged.find((u) => u.id === selectedUser.id);
+          const updatedSelected = filtered.find((u) => u.id === selectedUser.id);
           setSelectedUser(updatedSelected || null);
         }
       } catch (err) {
@@ -130,7 +145,7 @@ function App() {
     };
 
     loadUsers();
-  }, [token, onlineIds]);
+  }, [token, onlineIds, searchQuery]);
 
   const handleAuth = async (payload) => {
     setLoadingAuth(true);
@@ -174,26 +189,76 @@ function App() {
 
   const handleDeleteConversation = async () => {
     if (!selectedUser) return;
-    if (!window.confirm(`Delete entire conversation with ${selectedUser.name}? This cannot be undone.`)) return;
+    if (!window.confirm(`Clear entire conversation with ${selectedUser.name}? You both won't see each other until you search again.`)) return;
 
     try {
       await api.delete(`/api/messages/conversation/${selectedUser.id}`);
       setMessages([]);
+      
+      // Auto-hide user after clearing chat
+      const hiddenUsers = JSON.parse(localStorage.getItem('hiddenUsers') || '[]');
+      if (!hiddenUsers.includes(selectedUser.id)) {
+        hiddenUsers.push(selectedUser.id);
+        localStorage.setItem('hiddenUsers', JSON.stringify(hiddenUsers));
+      }
+      setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+      setSelectedUser(null);
       setError('');
     } catch (err) {
-      const message = err.response?.data?.message || 'Failed to delete conversation';
+      const message = err.response?.data?.message || 'Failed to clear conversation';
       setError(message);
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('Delete your account permanently? All your messages will be deleted. This cannot be undone.')) return;
+  const handleHideUser = () => {
+    if (!selectedUser) return;
+    if (!window.confirm(`Remove ${selectedUser.name} from your chat list? You can still receive messages if they contact you.`)) return;
+
+    const hiddenUsers = JSON.parse(localStorage.getItem('hiddenUsers') || '[]');
+    if (!hiddenUsers.includes(selectedUser.id)) {
+      hiddenUsers.push(selectedUser.id);
+      localStorage.setItem('hiddenUsers', JSON.stringify(hiddenUsers));
+    }
+    setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+    setSelectedUser(null);
+    setMessages([]);
+  };
+
+  const handleDeleteMessagesForMe = async () => {
+    if (selectedMessages.length === 0) return;
+    if (!window.confirm(`Delete ${selectedMessages.length} message(s) for you only?`)) return;
 
     try {
-      await api.delete('/api/users/me');
-      handleLogout();
+      await Promise.all(
+        selectedMessages.map((id) => api.delete(`/api/messages/${id}/for-me`))
+      );
+      setMessages((prev) => prev.filter((m) => !selectedMessages.includes(m.id)));
+      setSelectedMessages([]);
+      setError('');
     } catch (err) {
-      const message = err.response?.data?.message || 'Failed to delete account';
+      const message = err.response?.data?.message || 'Failed to delete messages';
+      setError(message);
+    }
+  };
+
+  const handleDeleteMessagesForEveryone = async () => {
+    if (selectedMessages.length === 0) return;
+    const myMessages = messages.filter((m) => selectedMessages.includes(m.id) && m.sender === currentUser.id);
+    if (myMessages.length === 0) {
+      setError('You can only delete your own messages for everyone');
+      return;
+    }
+    if (!window.confirm(`Delete ${myMessages.length} message(s) for everyone? This cannot be undone.`)) return;
+
+    try {
+      await Promise.all(
+        myMessages.map((m) => api.delete(`/api/messages/${m.id}/for-everyone`))
+      );
+      setMessages((prev) => prev.filter((m) => !myMessages.map((msg) => msg.id).includes(m.id)));
+      setSelectedMessages([]);
+      setError('');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to delete messages';
       setError(message);
     }
   };
@@ -220,10 +285,23 @@ function App() {
             <div className="brand">Realtime Chat</div>
             <div className="muted">Logged in as {currentUser.name}</div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn ghost" onClick={handleDeleteAccount} title="Delete account">Delete Account</button>
-            <button className="btn ghost" onClick={handleLogout}>Logout</button>
-          </div>
+          <button className="btn ghost" onClick={handleLogout}>Logout</button>
+        </div>
+        <div style={{ padding: '0.5rem 1rem' }}>
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.65rem 0.75rem',
+              borderRadius: '10px',
+              border: '1px solid var(--border)',
+              background: 'var(--panel-2)',
+              color: 'var(--text)',
+            }}
+          />
         </div>
         {loadingUsers && <div className="muted" style={{ padding: '0 1rem' }}>Refreshing users...</div>}
         <UserList users={users} selectedId={selectedUser?.id} onSelect={setSelectedUser} />
@@ -238,6 +316,16 @@ function App() {
           onMessageChange={setMessageText}
           onSend={sendMessage}
           onDeleteConversation={handleDeleteConversation}
+          onHideUser={handleHideUser}
+          selectedMessages={selectedMessages}
+          onToggleSelectMessage={(id) => {
+            setSelectedMessages((prev) =>
+              prev.includes(id) ? prev.filter((msgId) => msgId !== id) : [...prev, id]
+            );
+          }}
+          onDeleteMessagesForMe={handleDeleteMessagesForMe}
+          onDeleteMessagesForEveryone={handleDeleteMessagesForEveryone}
+          onClearSelection={() => setSelectedMessages([])}
           loading={loadingMessages}
           connected={socketConnected}
         />

@@ -13,6 +13,7 @@ router.get('/:userId', auth, async (req, res) => {
         { sender: req.userId, recipient: otherUserId },
         { sender: otherUserId, recipient: req.userId },
       ],
+      deletedFor: { $ne: req.userId },
     })
       .sort({ createdAt: 1 })
       .limit(500);
@@ -47,6 +48,47 @@ router.delete('/conversation/:userId', auth, async (req, res) => {
   } catch (err) {
     console.error('Delete conversation error', err);
     return res.status(500).json({ message: 'Unable to delete conversation' });
+  }
+});
+
+router.delete('/:messageId/for-me', auth, async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    if (!message.deletedFor) {
+      message.deletedFor = [];
+    }
+    if (!message.deletedFor.includes(req.userId)) {
+      message.deletedFor.push(req.userId);
+      await message.save();
+    }
+
+    return res.json({ message: 'Message deleted for you' });
+  } catch (err) {
+    console.error('Delete message for me error', err);
+    return res.status(500).json({ message: 'Unable to delete message' });
+  }
+});
+
+router.delete('/:messageId/for-everyone', auth, async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    if (message.sender.toString() !== req.userId) {
+      return res.status(403).json({ message: 'You can only delete your own messages' });
+    }
+
+    await Message.findByIdAndDelete(req.params.messageId);
+    return res.json({ message: 'Message deleted for everyone' });
+  } catch (err) {
+    console.error('Delete message for everyone error', err);
+    return res.status(500).json({ message: 'Unable to delete message' });
   }
 });
 

@@ -8,6 +8,12 @@ export default function ChatWindow({
   onMessageChange,
   onSend,
   onDeleteConversation,
+  onHideUser,
+  selectedMessages,
+  onToggleSelectMessage,
+  onDeleteMessagesForMe,
+  onDeleteMessagesForEveryone,
+  onClearSelection,
   loading,
   connected,
 }) {
@@ -33,14 +39,53 @@ export default function ChatWindow({
           <div className="chat-subtitle">{selectedUser.online ? 'Online' : 'Offline'}</div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button
-            className="btn ghost"
-            style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-            onClick={onDeleteConversation}
-            title="Delete conversation"
-          >
-            Delete Chat
-          </button>
+          {selectedMessages.length === 0 ? (
+            <>
+              <button
+                className="btn ghost"
+                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+                onClick={onDeleteConversation}
+                title="Clear messages for both"
+              >
+                Clear Chat
+              </button>
+              <button
+                className="btn ghost"
+                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+                onClick={onHideUser}
+                title="Remove from your chat list"
+              >
+                Hide User
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
+                {selectedMessages.length} selected
+              </span>
+              <button
+                className="btn ghost"
+                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+                onClick={onDeleteMessagesForMe}
+              >
+                Delete for Me
+              </button>
+              <button
+                className="btn ghost"
+                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+                onClick={onDeleteMessagesForEveryone}
+              >
+                Delete for Everyone
+              </button>
+              <button
+                className="btn ghost"
+                style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+                onClick={onClearSelection}
+              >
+                Cancel
+              </button>
+            </>
+          )}
           <div className={`pill ${connected ? 'pill-online' : 'pill-offline'}`}>
             {connected ? 'Connected' : 'Connecting...'}
           </div>
@@ -51,11 +96,21 @@ export default function ChatWindow({
         {loading && <div className="muted">Loading messages...</div>}
         {messages.map((msg) => {
           const mine = msg.sender === currentUserId;
+          const isSelected = selectedMessages.includes(msg.id);
           return (
-            <div key={msg.id || `${msg.createdAt}-${msg.content}`}
-              className={`message ${mine ? 'mine' : 'theirs'}`}>
-              <div className="bubble">{msg.content}</div>
-              <div className="timestamp">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div
+              key={msg.id || `${msg.createdAt}-${msg.content}`}
+              className={`message ${mine ? 'mine' : 'theirs'} ${isSelected ? 'selected' : ''}`}
+              onClick={() => onToggleSelectMessage(msg.id)}
+              style={{ cursor: 'pointer', opacity: isSelected ? 0.7 : 1 }}
+            >
+              <div className="bubble">
+                {isSelected && <span style={{ marginRight: '0.5rem' }}>✓</span>}
+                {msg.content}
+              </div>
+              <div className="timestamp">
+                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
             </div>
           );
         })}
