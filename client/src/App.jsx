@@ -3,7 +3,9 @@ import { io } from 'socket.io-client';
 import AuthForm from './components/AuthForm';
 import UserList from './components/UserList';
 import ChatWindow from './components/ChatWindow';
-import { api, API_URL, setAuthToken } from './api';
+import FriendRequests from './components/FriendRequests';
+import AllUsers from './components/AllUsers';
+import { api, API_URL, setAuthToken, getFriendsList } from './api';
 import './styles.css';
 
 const storedToken = localStorage.getItem('chatToken') || '';
@@ -29,6 +31,10 @@ function App() {
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
   const [replyingTo, setReplyingTo] = useState(null);
+  const [friendsList, setFriendsList] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('friends'); // 'friends' or 'explore'
+  const [loadingFriends, setLoadingFriends] = useState(false);
   
   const socketRef = useRef(null);
   const selectedIdRef = useRef(null);
@@ -118,6 +124,12 @@ function App() {
         )
       );
     });
+    socket.on('friend_request_received', (data) => {
+      setFriendRequests((prev) => [...prev, data]);
+    });
+    socket.on('friend_request_accepted', (data) => {
+      setFriendsList((prev) => [...prev, data.friend]);
+    });
     socket.on('connect_error', (err) => {
       setError(err?.message || 'Socket connection failed');
     });
@@ -163,6 +175,25 @@ function App() {
   }, [selectedUser, token]);
 
   useEffect(() => {
+    if (!token) return;
+    
+    const loadFriends = async () => {
+      try {
+        setLoadingFriends(true);
+        const res = await getFriendsList();
+        setFriendsList(res.data || []);
+        setUsers(res.data || []);
+      } catch (error) {
+        console.error('Error loading friends:', error);
+      } finally {
+        setLoadingFriends(false);
+      }
+    };
+
+    loadFriends();
+  }, [token]);
+
+  useEffect(() {
     if (!token) return;
     const loadUsers = async () => {
       setLoadingUsers(true);
@@ -342,24 +373,69 @@ function App() {
           </div>
           <button className="btn ghost" onClick={handleLogout}>Logout</button>
         </div>
-        <div style={{ padding: '0.5rem 1rem' }}>
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+        
+        <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem 0.5rem' }}>
+          <button
+            onClick={() => setActiveTab('friends')}
             style={{
-              width: '100%',
-              padding: '0.65rem 0.75rem',
-              borderRadius: '10px',
+              flex: 1,
+              padding: '0.5rem 0.75rem',
+              background: activeTab === 'friends' ? 'var(--primary)' : 'var(--panel-2)',
+              color: activeTab === 'friends' ? '#0b1020' : 'var(--text)',
               border: '1px solid var(--border)',
-              background: 'var(--panel-2)',
-              color: 'var(--text)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '0.85rem',
+              transition: 'all 150ms ease',
             }}
-          />
+          >
+            Friends {friendsList.length > 0 && `(${friendsList.length})`}
+          </button>
+          <button
+            onClick={() => setActiveTab('explore')}
+            style={{
+              flex: 1,
+              padding: '0.5rem 0.75rem',
+              background: activeTab === 'explore' ? 'var(--primary)' : 'var(--panel-2)',
+              color: activeTab === 'explore' ? '#0b1020' : 'var(--text)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '0.85rem',
+              transition: 'all 150ms ease',
+            }}
+          >
+            Explore
+          </button>
         </div>
-        {loadingUsers && <div className="muted" style={{ padding: '0 1rem' }}>Refreshing users...</div>}
-        <UserList users={users} selectedId={selectedUser?.id} onSelect={setSelectedUser} />
+
+        {activeTab === 'friends' ? (
+          <>
+            <FriendRequests onRequestHandled={() => {}} />
+            <div style={{ padding: '0.5rem 1rem' }}>
+              <input
+                type="text"
+                placeholder="Search friends..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.65rem 0.75rem',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--panel-2)',
+                  color: 'var(--text)',
+                }}
+              />
+            </div>
+            {loadingFriends && <div className="muted" style={{ padding: '0 1rem' }}>Loading friends...</div>}
+            <UserList users={friendsList} selectedId={selectedUser?.id} onSelect={setSelectedUser} />
+          </>
+        ) : (
+          <AllUsers currentUserId={currentUser.id} socket={socketRef.current} friendsList={friendsList} />
+        )}
       </div>
 
       <div className="card" style={{ padding: 0 }}>

@@ -13,3 +13,11 @@ export function setAuthToken(token) {
     delete api.defaults.headers.common.Authorization;
   }
 }
+
+// Friend API calls
+export const sendFriendRequest = (recipientId) => api.post('/api/friends/request', { recipientId });
+export const acceptFriendRequest = (requestId) => api.put(`/api/friends/request/${requestId}/accept`);
+export const rejectFriendRequest = (requestId) => api.put(`/api/friends/request/${requestId}/reject`);
+export const getFriendRequests = () => api.get('/api/friends/requests');
+export const getFriendsList = () => api.get('/api/friends/list');
+export const removeFriend = (friendId) => api.delete(`/api/friends/${friendId}`);

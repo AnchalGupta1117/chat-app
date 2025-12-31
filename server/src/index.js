@@ -8,6 +8,7 @@ const connectToDatabase = require('./config/db');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
+const friendRoutes = require('./routes/friends');
 const Message = require('./models/Message');
 const { setOnline, removeOnline, getSocketId, getOnlineUserIds } = require('./utils/onlineUsers');
 
@@ -50,6 +51,7 @@ app.get('/debug/cors', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/friends', friendRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -195,6 +197,58 @@ io.use((socket, next) => {
       io.to(getSocketId(message.recipient.toString())).emit('reaction_updated', reactionPayload);
     } catch (err) {
       console.error('Add reaction error', err);
+    }
+  });
+
+  socket.on('send_friend_request', async (data) => {
+    try {
+      const { recipientId } = data;
+      const Friend = require('./models/Friend');
+      
+      const friendRequest = new Friend({
+        requester: userId,
+        recipient: recipientId,
+        status: 'pending',
+      });
+      
+      await friendRequest.save();
+      await friendRequest.populate('requester', 'name email');
+      
+      // Notify recipient in real-time
+      io.to(getSocketId(recipientId)).emit('friend_request_received', {
+        requestId: friendRequest._id,
+        requester: friendRequest.requester,
+        createdAt: friendRequest.createdAt,
+      });
+      
+      socket.emit('friend_request_sent', { recipientId, status: 'success' });
+    } catch (err) {
+      console.error('Send friend request error', err);
+      socket.emit('friend_request_sent', { status: 'error', message: err.message });
+    }
+  });
+
+  socket.on('accept_friend_request', async (data) => {
+    try {
+      const { requestId } = data;
+      const Friend = require('./models/Friend');
+      
+      const friendRequest = await Friend.findByIdAndUpdate(
+        requestId,
+        { status: 'accepted' },
+        { new: true }
+      ).populate('requester', 'name email').populate('recipient', 'name email');
+      
+      // Notify both users
+      io.to(getSocketId(friendRequest.requester._id.toString())).emit('friend_request_accepted', {
+        friend: friendRequest.recipient,
+      });
+      
+      io.to(getSocketId(friendRequest.recipient._id.toString())).emit('friend_request_accepted', {
+        friend: friendRequest.requester,
+      });
+    } catch (err) {
+      console.error('Accept friend request error', err);
     }
   });
 
