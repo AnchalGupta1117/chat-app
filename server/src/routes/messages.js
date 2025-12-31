@@ -8,6 +8,19 @@ router.get('/:userId', auth, async (req, res) => {
   const otherUserId = req.params.userId;
 
   try {
+    // Check if users are friends
+    const Friend = require('../models/Friend');
+    const friendship = await Friend.findOne({
+      $or: [
+        { requester: req.userId, recipient: otherUserId, status: 'accepted' },
+        { requester: otherUserId, recipient: req.userId, status: 'accepted' },
+      ],
+    });
+
+    if (!friendship) {
+      return res.status(403).json({ message: 'You can only view messages with friends' });
+    }
+
     const messages = await Message.find({
       $or: [
         { sender: req.userId, recipient: otherUserId },

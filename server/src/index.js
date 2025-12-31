@@ -112,6 +112,20 @@ io.use((socket, next) => {
         return;
       }
 
+      // Check if users are friends
+      const Friend = require('./models/Friend');
+      const friendship = await Friend.findOne({
+        $or: [
+          { requester: userId, recipient: to, status: 'accepted' },
+          { requester: to, recipient: userId, status: 'accepted' },
+        ],
+      });
+
+      if (!friendship) {
+        ack?.({ ok: false, message: 'You can only message friends' });
+        return;
+      }
+
       const messageData = { sender: userId, recipient: to, content };
       if (replyTo) {
         messageData.replyTo = replyTo;

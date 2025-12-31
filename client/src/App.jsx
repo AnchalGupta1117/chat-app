@@ -5,7 +5,7 @@ import UserList from './components/UserList';
 import ChatWindow from './components/ChatWindow';
 import FriendRequests from './components/FriendRequests';
 import AllUsers from './components/AllUsers';
-import { api, API_URL, setAuthToken, getFriendsList, getFriendRequests, acceptFriendRequest, rejectFriendRequest } from './api';
+import { api, API_URL, setAuthToken, getFriendsList, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend } from './api';
 import './styles.css';
 
 const storedToken = localStorage.getItem('chatToken') || '';
@@ -406,6 +406,22 @@ function App() {
     }
   };
 
+  const handleRemoveFriend = async (friendId) => {
+    if (!window.confirm('Remove this friend? You will no longer be able to message each other.')) return;
+    try {
+      await removeFriend(friendId);
+      setFriendsList((prev) => prev.filter((f) => f._id !== friendId));
+      if (selectedUser?.id === friendId) {
+        setSelectedUser(null);
+        setMessages([]);
+      }
+      setError('');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to remove friend';
+      setError(message);
+    }
+  };
+
   if (!token || !currentUser) {
     return (
       <div className="auth-card card">
@@ -493,7 +509,12 @@ function App() {
               />
             </div>
             {loadingFriends && <div className="muted" style={{ padding: '0 1rem' }}>Loading friends...</div>}
-            <UserList users={friendsList} selectedId={selectedUser?.id} onSelect={setSelectedUser} />
+            <UserList 
+              users={friendsList} 
+              selectedId={selectedUser?.id} 
+              onSelect={setSelectedUser}
+              onRemove={handleRemoveFriend}
+            />
           </>
         ) : (
           <AllUsers 
